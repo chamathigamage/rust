@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 mockall = "0.11.3"
+tokio = { version = "1", features = ["full"] }
 time = "0.3.16"
 again = "0.1.2"

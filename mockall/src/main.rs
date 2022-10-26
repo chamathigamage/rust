@@ -1,62 +1,6 @@
-// fn main(){
-//     struct Bar{}
-//     use mockall::*;
-//     // use mockall::predicate::*;
-//     #[automock(type Key=u16; type Value=i32;)]
-//     pub trait A {
-//         type Key;
-//         type Value;
-//         fn foo(&self, k: Self::Key) -> Self::Value;
-//     }
-
-//     let mut mock = MockA::new();
-//     mock.expect_foo()
-//         .returning(|x: u16| i32::from(x));
-
-//     if mock.foo(4)==4 {
-//         println!("YESS");
-//     }
-
-//     impl Bar {
-//         fn foo(&mut self) {
-//             println!("In struct impl!")
-//         }
-//     }
-
-//     let mut b = Bar{};
-//     b.foo();
-// }
-
-// fn main() {
-//     use mockall::*;
-//     #[automock]
-//     trait MyTrait {
-//         fn foo(&self, x: str) -> str;
-//     }
-
-//     // impl Bar {
-//     //     fn foo(&mut self) {
-//     //         println!("In struct impl!")
-//     //     }
-//     // }
-
-//     // let mut b = Bar{};
-//     // b.foo();
-//     // fn call_with_four(x: &dyn MyTrait) -> u32 {
-//     //     x.foo("")
-//     // }
-
-//     let mut mock = MockMyTrait::new();
-//     mock.expect_foo()
-//         .returning("this is a mock");
-
-
-// }
-
-
-
-fn main(){
-    use std::time::{SystemTime};
+#[tokio::main]
+async fn main(){
+    use std::time::{SystemTime, Duration, SystemTimeError};
     use mockall::*;
     pub struct Cham<'a> {
         pub pet: &'a str,
@@ -90,15 +34,21 @@ fn main(){
     println!("{:?}", me.getPet());
 
     
-    async fn check_correct_pet() -> Result<(), String> {
+    async fn check_correct_pet(mock: &MockMyPet) -> Result<Duration, SystemTimeError> {
+        let retry_policy = again::RetryPolicy::exponential(core::time::Duration::from_secs(1))
+        .with_max_delay(core::time::Duration::from_secs(120))
+        .with_max_retries(1);
+        println!{"Starting retries"}
         let start = SystemTime::now();
-        again::retry(|| async {
+        let result = retry_policy.retry(|| async {
             mock.getPet()
-        }).await.unwrap();
+        }).await;
         let end = SystemTime::now();
-        println!("{:?}", end.duration_since(start) );
-        Ok(())
+        end.duration_since(start)
     }
+
+    let return_result = check_correct_pet(&mock).await.unwrap();
+    println!("{:?}", return_result);
 }
 
 
