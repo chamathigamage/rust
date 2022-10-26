@@ -56,7 +56,7 @@
 
 
 fn main(){
-
+    use std::time::{SystemTime};
     use mockall::*;
     pub struct Cham<'a> {
         pub pet: &'a str,
@@ -64,24 +64,43 @@ fn main(){
 
     #[automock]
     trait MyPet {
-        fn getPet(&self) -> String;
-    }
-
-    let mut mock = MockMyPet::new();
-    mock.expect_getPet()
-        .returning(|| (format!("This is my pet dog Peggy")));
-
-    impl MyPet for Cham<'_> {
-        fn getPet(&self) -> String {
-            format!("This is my pet cat {}", self.pet)
-        }
-    }
-
+        fn getPet(&self) -> Result<String, &'static str>;
+    } 
+    
     let me = Cham {
         pet: "Amaya",
     };
 
-    println!("{}", me.getPet());
-    println!("{}", mock.getPet());
+    let mut mock = MockMyPet::new();
+    mock.expect_getPet()
+        .returning(move || if me.pet != "Amaya" {
+                println!("{:?}", SystemTime::now());
+                Ok(format!("This is my pet dog Peggy"))
+            } else {
+                Err("NOOO")
+            }
+        );
 
+    impl MyPet for Cham<'_> {
+        fn getPet(&self) -> Result<String, &'static str> {
+            Ok(format!("This is my pet cat {}", self.pet))
+        }
+    }
+    println!("{:?}", mock.getPet());
+    println!("{:?}", me.getPet());
+
+    
+    async fn check_correct_pet() -> Result<(), String> {
+        let start = SystemTime::now();
+        again::retry(|| async {
+            mock.getPet()
+        }).await.unwrap();
+        let end = SystemTime::now();
+        println!("{:?}", end.duration_since(start) );
+        Ok(())
+    }
 }
+
+
+
+
